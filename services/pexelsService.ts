@@ -1,9 +1,11 @@
 import { PexelsResponse, PexelsVideo } from "../types";
 
-export const searchPexelsVideo = async (apiKey: string, query: string): Promise<PexelsVideo | null> => {
+// Agora retorna uma lista de vídeos para permitir seleção aleatória e evitar repetidos
+export const searchPexelsVideo = async (apiKey: string, query: string, page: number = 1): Promise<PexelsVideo[]> => {
   if (!apiKey) throw new Error("API Key do Pexels é obrigatória");
 
-  const url = `https://api.pexels.com/videos/search?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`;
+  // Aumentei per_page para 15 para ter um pool maior de escolhas
+  const url = `https://api.pexels.com/videos/search?query=${encodeURIComponent(query)}&per_page=15&page=${page}&orientation=landscape`;
 
   try {
     const response = await fetch(url, {
@@ -16,18 +18,16 @@ export const searchPexelsVideo = async (apiKey: string, query: string): Promise<
       if (response.status === 401) {
         throw new Error("Chave API do Pexels inválida.");
       }
-      throw new Error(`Erro na API do Pexels: ${response.statusText}`);
+      // Loga o erro mas retorna array vazio para permitir que o app tente o fallback
+      console.warn(`Erro na API do Pexels (${response.status}): ${response.statusText}`);
+      return [];
     }
 
     const data: PexelsResponse = await response.json();
     
-    if (data.videos && data.videos.length > 0) {
-      return data.videos[0];
-    }
-    return null;
+    return data.videos || [];
   } catch (error) {
     console.error("Pexels API Error:", error);
-    // Don't throw here to allow partial results (some videos found, some not)
-    return null;
+    return [];
   }
 };
