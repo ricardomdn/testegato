@@ -14,6 +14,19 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const PLACEHOLDER_TEXT = `Ex: Você sabe por que seu gato te "amassa" com as patinhas? Esse comportamento, conhecido como 'fazer pãozinho', vem da infância. Quando filhotes, eles fazem isso na barriga da mãe para estimular o leite. Mas quando adultos, é um sinal supremo de afeto e segurança. Se o seu gato faz isso em você, parabéns! Ele te considera sua "mãe gigante". Mas cuidado: quanto mais amor, mais unhadas sem querer!`;
 
+// Lista de termos genéricos para fallback caso a busca específica falhe
+const FALLBACK_CAT_TERMS = [
+  "cute cat close up",
+  "kitten playing",
+  "cat sleeping",
+  "funny cat",
+  "cat eyes",
+  "cat walking",
+  "cat licking paw",
+  "fluffy cat",
+  "cat yawning"
+];
+
 const AppContent: React.FC = () => {
   // Inicializa o estado verificando o LocalStorage
   const [apiKeys, setApiKeys] = useState<ApiKeys>(() => {
@@ -82,11 +95,31 @@ const AppContent: React.FC = () => {
             }
           } catch (e) {
             console.warn(`Falha ao buscar termo "${term}":`, e);
+            // Se for erro de autenticação, propaga o erro. Se for 404/vazio, continua.
             if (e instanceof Error && e.message.includes('inválida')) {
                 throw e; 
             }
             continue; 
           }
+        }
+
+        // --- FALLBACK LOGIC ---
+        // Se após tentar os 3 termos da IA ainda não tiver vídeo, busca um gato aleatório
+        if (!videoData || !videoData.video_files || videoData.video_files.length === 0) {
+            try {
+                await delay(350); // Segurança de rate limit
+                const randomFallbackTerm = FALLBACK_CAT_TERMS[Math.floor(Math.random() * FALLBACK_CAT_TERMS.length)];
+                
+                console.log(`Fallback ativado para segmento ${index}: buscando "${randomFallbackTerm}"`);
+                
+                const fallbackResult = await searchPexelsVideo(apiKeys.pexels, randomFallbackTerm);
+                if (fallbackResult && fallbackResult.video_files && fallbackResult.video_files.length > 0) {
+                    videoData = fallbackResult;
+                    usedTerm = `${randomFallbackTerm} (Automático)`;
+                }
+            } catch (fallbackError) {
+                console.warn("Fallback também falhou:", fallbackError);
+            }
         }
         
         let bestVideoUrl = null;
