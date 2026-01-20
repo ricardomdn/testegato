@@ -60,6 +60,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ apiKeys, setApiKeys }) => {
         </h2>
 
         <div className="space-y-6">
+          {/* Gemini Key */}
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Gemini API Key
+            </label>
+            <input
+              type="password"
+              value={apiKeys.gemini}
+              onChange={(e) => handleChange('gemini', e.target.value)}
+              placeholder="Cole sua Gemini key aqui"
+              className="w-full bg-slate-800 border border-slate-600 rounded-md px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+            />
+            <p className="text-xs text-slate-500 mt-1">
+              Usada para analisar o roteiro. <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-orange-500 hover:underline">Obter chave</a>
+            </p>
+          </div>
+
           {/* Pexels Key */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">
@@ -88,7 +105,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ apiKeys, setApiKeys }) => {
               />
               <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-orange-500/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all border-gray-600 peer-checked:bg-orange-600"></div>
               <span className={`ml-3 text-sm font-medium transition-colors select-none ${saveKeys ? 'text-slate-200' : 'text-slate-500'}`}>
-                Salvar opções?
+                Salvar chaves?
               </span>
             </label>
           </div>
@@ -98,14 +115,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ apiKeys, setApiKeys }) => {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
-              <span>Se marcado, suas chaves ficam salvas no navegador.</span>
+              <span>Se marcado, suas chaves ficam no seu navegador (LocalStorage). Seguro e prático.</span>
             </p>
           </div>
         </div>
 
         <div className="mt-12 pt-6 border-t border-slate-700 text-slate-500 text-xs text-center">
           <p>Gatos AI Studio</p>
-          <p className="mt-2 font-mono opacity-70">Versão 1.2.6 (Cat Edition)</p>
+          <p className="mt-2 font-mono opacity-70">Versão 1.2.7 (Secure Edition)</p>
         </div>
       </div>
 

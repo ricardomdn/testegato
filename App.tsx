@@ -19,9 +19,9 @@ const AppContent: React.FC = () => {
   const [apiKeys, setApiKeys] = useState<ApiKeys>(() => {
     try {
       const saved = localStorage.getItem('ai_broll_keys');
-      return saved ? JSON.parse(saved) : { pexels: '' };
+      return saved ? JSON.parse(saved) : { gemini: '', pexels: '' };
     } catch (e) {
-      return { pexels: '' };
+      return { gemini: '', pexels: '' };
     }
   });
 
@@ -39,8 +39,8 @@ const AppContent: React.FC = () => {
   const handleGenerate = async () => {
     setError(null);
     
-    if (!apiKeys.pexels) {
-      setError("Por favor, insira a chave API do Pexels na barra lateral antes de continuar.");
+    if (!apiKeys.gemini || !apiKeys.pexels) {
+      setError("Por favor, insira ambas as chaves API na barra lateral antes de continuar.");
       return;
     }
 
@@ -55,7 +55,7 @@ const AppContent: React.FC = () => {
     try {
       // Step 1: Gemini Analysis
       setLoadingStep('Quebrando roteiro frase a frase com IA...');
-      const rawSegments = await analyzeScript(script);
+      const rawSegments = await analyzeScript(apiKeys.gemini, script);
       
       if (rawSegments.length === 0) {
         throw new Error("A IA não retornou nenhum segmento válido.");
@@ -164,7 +164,7 @@ const AppContent: React.FC = () => {
 
     try {
       // 1. Gerar novo termo com Gemini
-      const newTerm = await generateAlternativeTerm(segment.text, segment.searchTerm);
+      const newTerm = await generateAlternativeTerm(apiKeys.gemini, segment.text, segment.searchTerm);
 
       // 2. Buscar no Pexels com o novo termo
       const result = await searchPexelsVideo(apiKeys.pexels, newTerm);
