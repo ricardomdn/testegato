@@ -19,25 +19,22 @@ export const analyzeScript = async (apiKey: string, script: string): Promise<Seg
     SCRIPT:
     "${cleanScript}"
 
-    **CRITICAL TASK - TIKTOK/REELS PACING (FAST CUTS):**
-    You must segment this script into **SHORT VISUAL BEATS**.
+    **CRITICAL TASK - FULL SCRIPT COVERAGE (SENTENCE BY SENTENCE):**
+    You must segment this script strictly **SENTENCE BY SENTENCE**.
+    It is crucial that you cover the **ENTIRE SCRIPT** from start to finish. Do not skip any parts.
     
     **SEGMENTATION RULES:**
-    1. **FAST PACING:** Do NOT keep long sentences as one segment. Break them down!
-       - Bad: "When cats rub against your leg, they are actually marking you with their scent glands." (Too long, 1 clip)
-       - Good: "When cats rub against your leg," (Clip 1)
-       - Good: "they are actually marking you" (Clip 2)
-       - Good: "with their scent glands." (Clip 3)
-    2. **1 Clause = 1 Video Clip.**
-    3. Maximum duration per segment should be roughly 2-4 seconds of spoken text.
+    1. **1 SENTENCE = 1 VIDEO CLIP.**
+    2. **DO NOT SUMMARIZE.** Every sentence in the script must be a separate segment.
+    3. If a sentence is Long or Complex (has commas or multiple clauses), SPLIT it into 2 or more segments to keep the visual pace dynamic.
+    4. If a sentence is extremely short (under 3 words), you may combine it with the next one.
 
     **SEARCH TERM RULES (CONTEXT AWARE):**
     1.  For each segment, provide 3 DISTINCT search terms for Pexels/Stock Footage.
-    2.  **MATCH THE VISUAL BEAT:**
-        - If text is "Cats sleep a lot", search: "Sleeping cat", "Lazy cat on sofa".
-        - If text is "They are hunters", search: "Cat pouncing", "Cat eyes dilated", "Cat hunting toy".
-    3.  **DEFAULT TO CATS:** Unless the script explicitly mentions a human/object alone (e.g. "Open a can"), always include "Cat" or "Kitten" in the search.
-    4.  **English Only.**
+    2.  **MATCH THE VISUALS:**
+        - If the segment describes a specific action (e.g., "The cat knocks over a vase"), search for "Cat knocking vase" or "Broken vase".
+        - If the segment is abstract or emotional, search for the corresponding cat behavior (e.g., "Happy cat", "Angry cat").
+    3.  **English Only.**
 
     Return the result as a JSON array.
   `;
@@ -47,7 +44,7 @@ export const analyzeScript = async (apiKey: string, script: string): Promise<Seg
       model: "gemini-3-flash-preview",
       contents: prompt,
       config: {
-        systemInstruction: "You are a Viral Video Editor specialized in high-retention content. You chop scripts into bite-sized visual pieces to keep the audience engaged.",
+        systemInstruction: "You are a Video Editor Assistant. Your job is to break down a script into video segments ensuring 100% of the text is covered.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.ARRAY,
@@ -56,7 +53,7 @@ export const analyzeScript = async (apiKey: string, script: string): Promise<Seg
             properties: {
               text: {
                 type: Type.STRING,
-                description: "The short phrase or clause for this segment",
+                description: "The sentence or clause for this segment",
               },
               search_terms: {
                 type: Type.ARRAY,
