@@ -19,17 +19,14 @@ export const analyzeScript = async (apiKey: string, script: string): Promise<Seg
     SCRIPT:
     "${cleanScript}"
 
-    **CRITICAL TASK - HYPER-DYNAMIC EDITING (TikTok/Reels Style):**
-    You must segment this script into **SHORT, FAST-PACED VISUAL BLOCKS**.
+    **CRITICAL TASK - DYNAMIC EDITING (SENTENCE BY SENTENCE):**
+    You must segment this script strictly **SENTENCE BY SENTENCE**.
     
     **SEGMENTATION RULES:**
-    1. **SPLIT AGGRESSIVELY:** Do NOT stick to 1 sentence = 1 clip. Break sentences down into smaller clauses.
-    2. **COMMAS & CONJUNCTIONS:** Anytime there is a comma, "and", "but", "because", or a natural pause, START A NEW SEGMENT.
-    3. **VISUAL PACING:**
-       - Example: "The cat jumps on the table, looks at the glass, and knocks it over."
-       - **BAD:** 1 Clip.
-       - **GOOD:** 3 Clips: ["The cat jumps on the table", "looks at the glass", "and knocks it over"].
-    4. **MAX LENGTH:** Segments should generally remain under 10-12 words to keep the viewer engaged.
+    1. **1 SENTENCE = 1 VIDEO CLIP.** Do NOT group sentences together.
+    2. If a sentence is extremely short (under 3 words), you may combine it with the next one.
+    3. If a sentence is very long/complex, split it into two visual segments based on clauses.
+    4. The goal is a **FAST PACED** video where the visual changes every time a new sentence starts.
 
     **SEARCH TERM RULES (CONTEXT AWARE):**
     1.  For each segment, provide 3 DISTINCT search terms for Pexels/Stock Footage.
@@ -47,7 +44,7 @@ export const analyzeScript = async (apiKey: string, script: string): Promise<Seg
       model: "gemini-3-flash-preview",
       contents: prompt,
       config: {
-        systemInstruction: "You are a Professional Video Editor for TikTok/Reels. You specialize in high-retention editing. You chop scripts into bite-sized visual pieces to keep the audience hooked. You utilize stock footage creatively.",
+        systemInstruction: "You are a Professional Video Editor. You choose the best B-Roll footage to illustrate the narration. You are NOT afraid to show humans, objects, or scenery if the script mentions them, to create a rich visual storytelling experience.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.ARRAY,
@@ -56,7 +53,7 @@ export const analyzeScript = async (apiKey: string, script: string): Promise<Seg
             properties: {
               text: {
                 type: Type.STRING,
-                description: "The partial sentence or clause for this segment",
+                description: "The single sentence or clause for this segment",
               },
               search_terms: {
                 type: Type.ARRAY,

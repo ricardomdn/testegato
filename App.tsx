@@ -103,7 +103,7 @@ const AppContent: React.FC = () => {
           }
         }
 
-        // --- FALLBACK LOGIC ---
+        // --- FALLBACK LOGIC 1: Busca Genérica ---
         // Se após tentar os 3 termos da IA ainda não tiver vídeo, busca um gato aleatório
         if (!videoData || !videoData.video_files || videoData.video_files.length === 0) {
             try {
@@ -118,7 +118,7 @@ const AppContent: React.FC = () => {
                     usedTerm = `${randomFallbackTerm} (Automático)`;
                 }
             } catch (fallbackError) {
-                console.warn("Fallback também falhou:", fallbackError);
+                console.warn("Fallback genérico também falhou:", fallbackError);
             }
         }
         
@@ -143,6 +143,29 @@ const AppContent: React.FC = () => {
       });
 
       const results = await Promise.all(segmentPromises);
+
+      // --- FALLBACK LOGIC 2: Reciclagem de Vídeos (Último Recurso) ---
+      // Se ainda houver segmentos sem vídeo (URL null), reutilizamos vídeos que foram encontrados com sucesso em outros segmentos.
+      const successfulVideos = results.filter(r => r.videoUrl);
+
+      if (successfulVideos.length > 0) {
+        results.forEach(segment => {
+          if (!segment.videoUrl) {
+            // Pega um vídeo aleatório da lista de sucessos
+            const recycled = successfulVideos[Math.floor(Math.random() * successfulVideos.length)];
+            
+            console.log(`Reciclando vídeo para o segmento: "${segment.text}"`);
+            
+            segment.videoUrl = recycled.videoUrl;
+            segment.videoDuration = recycled.videoDuration;
+            segment.videoUser = recycled.videoUser;
+            segment.videoUserUrl = recycled.videoUserUrl;
+            // Atualiza o termo visualmente para indicar que foi reutilizado, mas mantendo a ideia original
+            segment.searchTerm = `${segment.searchTerm} (Reutilizado)`;
+          }
+        });
+      }
+
       setSegments(results);
 
     } catch (err: any) {
