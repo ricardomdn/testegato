@@ -55,7 +55,7 @@ const AppContent: React.FC = () => {
 
     try {
       // Step 1: Gemini Analysis
-      setLoadingStep('Analisando roteiro completo (Transcrição)...');
+      setLoadingStep('Analisando roteiro e contexto visual...');
       const rawSegments = await analyzeScript(apiKeys.gemini, script);
       
       if (rawSegments.length === 0) {
@@ -63,18 +63,18 @@ const AppContent: React.FC = () => {
       }
 
       // Step 2: Pexels Video Search
-      setLoadingStep(`Buscando clipes para ${rawSegments.length} cenas (Modo Seguro)...`);
+      setLoadingStep(`Buscando clipes para ${rawSegments.length} cenas...`);
       
       const segmentPromises = rawSegments.map(async (seg, index) => {
         let videoData: PexelsVideo | undefined;
         let usedTerm = seg.search_terms[0];
 
-        // --- STAGGER DELAY (Crítico para evitar "Video Not Found" em massa) ---
-        // Aumentado para 800ms por item. Se tiver 50 itens, o ultimo começa 40s depois.
-        // Isso garante que o Pexels não bloqueie a conexão.
-        await delay(index * 800); 
+        // --- STAGGER DELAY OTIMIZADO ---
+        // Reduzido para 300ms. A lógica de retry no pexelsService cuida dos erros 429.
+        // Isso torna o carregamento ~2.5x mais rápido que antes.
+        await delay(index * 300); 
 
-        // --- TENTATIVA 1: Termos Específicos da IA ---
+        // --- TENTATIVA 1: Termos Contextuais da IA ---
         for (const term of seg.search_terms) {
           try {
             const videos = await searchPexelsVideo(apiKeys.pexels, term, 1);
@@ -91,10 +91,9 @@ const AppContent: React.FC = () => {
         if (!videoData) {
             try {
                 const randomGenericTerm = FALLBACK_CAT_TERMS[Math.floor(Math.random() * FALLBACK_CAT_TERMS.length)];
-                // Reduzi o range de páginas para 1-5 para garantir resultados (páginas muito altas as vezes falham)
                 const randomPage = Math.floor(Math.random() * 5) + 1;
                 
-                await delay(200); // Pequeno delay extra antes do fallback
+                await delay(100); 
                 const videos = await searchPexelsVideo(apiKeys.pexels, randomGenericTerm, randomPage);
                 
                 if (videos && videos.length > 0) {
@@ -106,10 +105,9 @@ const AppContent: React.FC = () => {
         }
 
         // --- TENTATIVA 3: REDE DE SEGURANÇA NUCLEAR ---
-        // Se tudo falhar, busca "Cat" na página 1. Impossível falhar a menos que a API esteja fora.
         if (!videoData) {
             try {
-                await delay(200);
+                await delay(100);
                 const videos = await searchPexelsVideo(apiKeys.pexels, "cat", 1);
                 if (videos && videos.length > 0) {
                     const randomIndex = Math.floor(Math.random() * Math.min(videos.length, 5));

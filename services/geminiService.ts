@@ -14,38 +14,44 @@ export const analyzeScript = async (apiKey: string, script: string): Promise<Seg
   const ai = new GoogleGenAI({ apiKey });
 
   const prompt = `
-    You are a Video Script Segmenter.
+    You are a Video Script Segmenter & Visual Director.
     
     **INPUT SCRIPT:**
     "${cleanScript}"
 
-    **RULE 1: VERBATIM TRANSCRIPTION (NO SUMMARIZING)**
-    - You must output the script **word-for-word**. 
-    - Do NOT delete a single word.
-    - Do NOT rewrite.
-    - If input is 1000 words, output must be 1000 words split into segments.
+    **RULE 1: VERBATIM TRANSCRIPTION**
+    - Output the script **word-for-word**. Do NOT summarize.
 
-    **RULE 2: PACING (HOOK vs BODY)**
+    **RULE 2: PACING**
+    - **Hook (First 3 sentences):** Split fast (every 3-6 words).
+    - **Body:** Split **Sentence by Sentence**.
+
+    **RULE 3: CONTEXTUAL VISUAL TRANSLATION (CRITICAL)**
+    - Do NOT just use "Cat happy" or "Cat sad". That is too generic.
+    - You must **translate the MEANING of the text into a CONCRETE VISUAL ACTION** that exists on stock footage sites.
+    - Keep terms simple (2-4 words), but make them **relevant**.
+
+    **Examples of Visual Translation:**
+    - Text: "Cats have excellent night vision." 
+      -> BAD: "Cat vision" (Abstract)
+      -> GOOD: **"Cat eyes macro"** or **"Cat pupil close up"**
     
-    A) **THE HOOK (First 3 sentences ONLY):**
-       - Split frequently (every 3-6 words).
-       - Create a fast pace.
+    - Text: "They are agile hunters in the wild."
+      -> BAD: "Cat nature"
+      -> GOOD: **"Cat jumping grass"** or **"Cat stalking prey"**
 
-    B) **THE BODY (The rest of the text):**
-       - **SAFE MODE.**
-       - Split **SENTENCE BY SENTENCE**.
-       - Keep full sentences together unless they are massive (>25 words).
-       - Do NOT chop sentences in the middle.
+    - Text: "Your cat loves you very much."
+      -> BAD: "Cat love"
+      -> GOOD: **"Cat licking hand"** or **"Cat rubbing leg"**
 
-    **RULE 3: "DUMB" SEARCH TERMS (CRITICAL)**
-    - For the BODY sections, use EXTREMELY SIMPLE search terms.
-    - **Structure:** "Cat" + [Single Verb/Adjective].
-    - **Examples:**
-      - Text: "Cats have a special organ to smell..." -> Search: "Cat smelling" (NOT "Cat organ")
-      - Text: "They sleep 16 hours a day..." -> Search: "Cat sleeping" (NOT "Cat sleeping 16 hours")
-      - Text: "Ancient Egyptians worshipped them..." -> Search: "Cat statue" or "Cat" (NOT "Egyptian cat worship")
-    - **ALWAYS start with "Cat" or "Kitten".**
-    - Provide 3 options per segment.
+    - Text: "Ancient Egyptians worshipped them."
+      -> BAD: "History cat"
+      -> GOOD: **"Sphynx cat"** or **"Cat statue"**
+
+    **SEARCH TERM FORMAT:**
+    - Always include "Cat" or "Kitten".
+    - Format: [Subject] + [Action/Context].
+    - Provide 3 distinct visual options per segment.
 
     Return the result as a JSON array.
   `;
@@ -55,7 +61,7 @@ export const analyzeScript = async (apiKey: string, script: string): Promise<Seg
       model: "gemini-3-flash-preview",
       contents: prompt,
       config: {
-        systemInstruction: "You are a mechanical transcriber. You do not think, you only cut text and provide simple keywords.",
+        systemInstruction: "You are an expert video editor. Match the script text to specific, existing stock footage concepts.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.ARRAY,
@@ -64,12 +70,12 @@ export const analyzeScript = async (apiKey: string, script: string): Promise<Seg
             properties: {
               text: {
                 type: Type.STRING,
-                description: "The EXACT text from the script for this segment.",
+                description: "The EXACT text from the script.",
               },
               search_terms: {
                 type: Type.ARRAY,
                 items: { type: Type.STRING },
-                description: "3 very simple search terms (e.g., 'Cat sleeping').",
+                description: "3 relevant, visual search terms (e.g., 'Cat eyes macro', 'Cat stalking').",
               },
             },
             required: ["text", "search_terms"],
@@ -95,17 +101,12 @@ export const generateAlternativeTerm = async (apiKey: string, originalText: stri
   const ai = new GoogleGenAI({ apiKey });
 
   const prompt = `
-    Generate a foolproof stock footage search term.
+    The previous search term "${currentTerm}" failed or was not good enough for this text:
+    "${originalText}"
     
-    Context: "${originalText}"
-    Previous Failed Term: "${currentTerm}"
-    
-    **RULE:**
-    Return a generic, broad term that 100% exists on Pexels.
-    Use ONLY: "Cat" + [Action/Part].
-    Max 2-3 words.
-    
-    Example: "Cat eyes", "Cat sleeping", "Orange cat".
+    Give me a BETTER, CONCRETE stock footage search term.
+    Focus on visual action.
+    Example: Instead of "Cat agility", use "Cat jumping slow motion".
     
     Return ONLY the string.
   `;
@@ -115,7 +116,7 @@ export const generateAlternativeTerm = async (apiKey: string, originalText: stri
       model: "gemini-3-flash-preview",
       contents: prompt,
       config: {
-        systemInstruction: "You are a helpful assistant.",
+        systemInstruction: "You are a creative visual assistant.",
       }
     });
 
