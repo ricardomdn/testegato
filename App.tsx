@@ -282,8 +282,10 @@ const AppContent: React.FC = () => {
             current: prev.current + 1
           }));
 
-          const safeFilename = segment.searchTerm.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-          const fileName = `cena_${(index + 1).toString().padStart(2, '0')}_${safeFilename}.mp4`;
+          // Nomenclatura para edição rápida: 1_1.mp4, 2_1.mp4, etc.
+          // index + 1 = Número da Cena
+          // _1 = Primeiro take/clipe da cena
+          const fileName = `${index + 1}_1.mp4`;
 
           return { fileName, blob };
         } catch (e) {
