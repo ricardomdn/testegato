@@ -57,7 +57,7 @@ const AppContent: React.FC = () => {
 
     try {
       // Step 1: Gemini Analysis
-      setLoadingStep('Criando roteiro dinâmico (Cortes rápidos)...');
+      setLoadingStep('Criando roteiro dinâmico...');
       const rawSegments = await analyzeScript(apiKeys.gemini, script);
       
       if (rawSegments.length === 0) {
@@ -71,51 +71,54 @@ const AppContent: React.FC = () => {
         let videoData: PexelsVideo | undefined;
         let usedTerm = seg.search_terms[0];
 
-        // TENTATIVA 1: Termos Específicos da IA (Página 1)
+        // --- TENTATIVA 1: Termos Específicos da IA (Página 1) ---
         for (const term of seg.search_terms) {
           try {
-            await delay(250); // Delay suave
-            // Busca na página 1
+            await delay(200); 
             const videos = await searchPexelsVideo(apiKeys.pexels, term, 1);
-            
             if (videos && videos.length > 0) {
-              // RANDOMIZAÇÃO #1: Não pegar sempre o primeiro.
-              // Pega um aleatório dos top 6 para evitar repetição se o termo for comum
+              // Pega um aleatório dos top 6
               const randomIndex = Math.floor(Math.random() * Math.min(videos.length, 6));
               videoData = videos[randomIndex];
               usedTerm = term;
               break; 
             }
-          } catch (e) { 
-             // Ignora erro e tenta próximo termo
-          }
+          } catch (e) { /* ignore */ }
         }
 
-        // TENTATIVA 2: FALLBACK COM VÍDEO GENÉRICO (Se nada específico foi encontrado)
+        // --- TENTATIVA 2: FALLBACK COM VÍDEO GENÉRICO ALEATÓRIO ---
+        // Se nada específico foi encontrado
         if (!videoData) {
             try {
-                // Seleciona um termo genérico aleatório
                 const randomGenericTerm = FALLBACK_CAT_TERMS[Math.floor(Math.random() * FALLBACK_CAT_TERMS.length)];
                 
-                // RANDOMIZAÇÃO #2: O PULO DO GATO (Literalmente)
-                // Busca em uma página aleatória entre 1 e 50.
-                // Isso garante que nunca pegaremos os mesmos vídeos "populares" repetidamente.
-                const randomPage = Math.floor(Math.random() * 50) + 1;
+                // Reduzi para página 1-20 para aumentar chance de encontrar algo (páginas 50+ podem estar vazias para certos termos)
+                const randomPage = Math.floor(Math.random() * 20) + 1;
                 
-                console.log(`Fallback para cena ${index}: "${randomGenericTerm}" (Página ${randomPage})`);
-                await delay(300);
-                
+                await delay(250);
                 const videos = await searchPexelsVideo(apiKeys.pexels, randomGenericTerm, randomPage);
                 
                 if (videos && videos.length > 0) {
-                    // Pega qualquer um da lista retornada
                     const randomIndex = Math.floor(Math.random() * videos.length);
                     videoData = videos[randomIndex];
-                    usedTerm = `${randomGenericTerm} (Genérico)`;
+                    usedTerm = `${randomGenericTerm} (Genérico Random)`;
                 }
-            } catch (e) {
-                console.warn("Fallback falhou totalmente para este segmento.");
-            }
+            } catch (e) { console.warn("Fallback aleatório falhou"); }
+        }
+
+        // --- TENTATIVA 3: REDE DE SEGURANÇA FINAL (Último Recurso) ---
+        // Se o aleatório também falhar, busca "cat" na página 1. Impossível falhar.
+        if (!videoData) {
+            try {
+                await delay(250);
+                const videos = await searchPexelsVideo(apiKeys.pexels, "cat", 1);
+                if (videos && videos.length > 0) {
+                    // Pega um vídeo do meio da lista para não ser sempre o primeiro vídeo do Pexels
+                    const randomIndex = Math.floor(Math.random() * Math.min(videos.length, 10));
+                    videoData = videos[randomIndex];
+                    usedTerm = "Cat (Fallback Final)";
+                }
+            } catch (e) { console.warn("Fallback final falhou"); }
         }
 
         // Processa URL do vídeo encontrado
@@ -197,7 +200,6 @@ const AppContent: React.FC = () => {
       let videoData: PexelsVideo | undefined;
 
       if (videos && videos.length > 0) {
-        // Na regeneração manual, pegamos um aleatório dos top 3 para variar
         const randomIndex = Math.floor(Math.random() * Math.min(videos.length, 3));
         videoData = videos[randomIndex];
         

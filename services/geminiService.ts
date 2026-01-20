@@ -19,26 +19,28 @@ export const analyzeScript = async (apiKey: string, script: string): Promise<Seg
     SCRIPT:
     "${cleanScript}"
 
-    **OBJECTIVE: HYBRID PACING STRATEGY (HOOK vs STORY)**
+    **OBJECTIVE: DYNAMIC VIDEO EDITING (HOOK vs STORY)**
 
-    You must segment this script applying two different editing rules based on the position in the video.
+    **PHASE 1: THE HOOK (First 20% of script)**
+    - **Pace:** Fast and energetic, BUT meaningful.
+    - **Rule:** Keep segments between **3 to 8 words**.
+    - **Do NOT** split mid-clause awkwardly.
+    - **Bad:** "Cats are," (Too short) | "awesome creatures." (Disconnected)
+    - **Good:** "Cats are awesome creatures," (Perfect)
 
-    **PHASE 1: THE VIRAL HOOK (First ~20% of the script / Intro)**
-    - **GOAL:** Grab attention immediately. Hyper-fast cuts.
-    - **RULE:** **SPLIT EVERYTHING.** If a sentence has a comma, "and", "but", or a natural pause, SPLIT IT into a new segment.
-    - **Limit:** Apply this aggressive splitting for the first 4-5 sentences (resulting in ~15-20 fast clips).
+    **PHASE 2: THE NARRATIVE (Remaining 80%)**
+    - **Pace:** Natural storytelling flow.
+    - **Rule:** **SENTENCE BY SENTENCE**.
+    - Only split if the sentence is very long (>20 words).
+    - Focus on completing the thought before cutting.
 
-    **PHASE 2: THE STORY BODY (The rest of the script)**
-    - **GOAL:** Comfortable viewing experience.
-    - **RULE:** **SENTENCE BY SENTENCE.**
-    - Keep sentences whole unless they are extremely long (>25 words).
-    - Do not split at every comma anymore. Let the viewer breathe.
-
-    **GENERAL RULES:**
-    1. **FULL COVERAGE:** You must cover 100% of the text. Do not skip or summarize.
-    2. **SEARCH TERMS:** Provide 3 distinct English search terms per segment.
-       - **ALWAYS** include "Cat" in the query (e.g., "Cat jumping" instead of "Jumping").
-       - Include at least one generic backup like "Cute cat face" or "Cat movement".
+    **CRITICAL: SEARCH TERMS FOR STOCK FOOTAGE**
+    - Stock sites (Pexels) fail with complex sentences.
+    - **RULE:** Generate **SIMPLE, 2-4 WORD** search terms.
+    - **Bad:** "Cat looking deeply into the camera with love" (Too complex -> No results)
+    - **Good:** "Cat macro eyes" or "Cat looking up"
+    - **ALWAYS** include "Cat" or "Kitten" in the query.
+    - Provide 3 distinct terms per segment.
 
     Return the result as a JSON array.
   `;
@@ -48,7 +50,7 @@ export const analyzeScript = async (apiKey: string, script: string): Promise<Seg
       model: "gemini-3-flash-preview",
       contents: prompt,
       config: {
-        systemInstruction: "You are a Professional Video Editor. You know that the first few seconds need fast cuts to stop the scroll, but the rest of the video needs a steady pace to tell the story.",
+        systemInstruction: "You are a Video Editor Assistant. You prioritize finding good footage matches. You keep search terms simple and broad to ensure results.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.ARRAY,
@@ -57,12 +59,12 @@ export const analyzeScript = async (apiKey: string, script: string): Promise<Seg
             properties: {
               text: {
                 type: Type.STRING,
-                description: "The sentence or clause for this segment",
+                description: "The script segment text",
               },
               search_terms: {
                 type: Type.ARRAY,
                 items: { type: Type.STRING },
-                description: "List of 3 search terms",
+                description: "List of 3 simple search terms (2-4 words max)",
               },
             },
             required: ["text", "search_terms"],
@@ -88,20 +90,16 @@ export const generateAlternativeTerm = async (apiKey: string, originalText: stri
   const ai = new GoogleGenAI({ apiKey });
 
   const prompt = `
-    I need a NEW stock footage search term for a video script segment.
+    I need a NEW, SIMPLE stock footage search term.
     
-    Original Sentence: "${originalText}"
-    Current Search Term: "${currentTerm}"
+    Context: "${originalText}"
+    Old Term: "${currentTerm}"
     
     **TASK:**
-    Generate a **completely different** English search term.
+    Give me a **BROAD, SIMPLE** search term (1-3 words) that guarantees results on Pexels.
+    Example: Instead of "Cat running fast in garden", use "Cat running".
     
-    **RULES:**
-    1. Focus on the VISUAL ACTION.
-    2. English ONLY.
-    3. Max 3-5 words.
-    
-    Return ONLY the raw search term string.
+    Return ONLY the search term string.
   `;
 
   try {
