@@ -5,8 +5,9 @@ export interface SegmentResponse {
   search_terms: string[];
 }
 
-export const analyzeScript = async (apiKey: string, script: string): Promise<SegmentResponse[]> => {
-  if (!apiKey) throw new Error("API Key do Gemini é obrigatória");
+export const analyzeScript = async (script: string): Promise<SegmentResponse[]> => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) throw new Error("API Key do Gemini não configurada no ambiente (process.env.API_KEY)");
 
   // Remove formatação excessiva
   const cleanScript = script.replace(/\n/g, " ").replace(/\s+/g, " ").trim();
@@ -79,8 +80,9 @@ export const analyzeScript = async (apiKey: string, script: string): Promise<Seg
   }
 };
 
-export const generateAlternativeTerm = async (apiKey: string, originalText: string, currentTerm: string): Promise<string> => {
-  if (!apiKey) throw new Error("API Key do Gemini é obrigatória");
+export const generateAlternativeTerm = async (originalText: string, currentTerm: string): Promise<string> => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) throw new Error("API Key do Gemini não configurada no ambiente (process.env.API_KEY)");
 
   const ai = new GoogleGenAI({ apiKey });
 

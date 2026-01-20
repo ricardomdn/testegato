@@ -4,6 +4,7 @@ import { ResultList } from './components/ResultList';
 import { analyzeScript, generateAlternativeTerm } from './services/geminiService';
 import { searchPexelsVideo } from './services/pexelsService';
 import { ApiKeys, ScriptSegment } from './types';
+import { AuthGate } from './components/AuthGate';
 import JSZip from 'jszip';
 import saveAs from 'file-saver';
 
@@ -13,14 +14,14 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const PLACEHOLDER_TEXT = `Ex: Você sabe por que seu gato te "amassa" com as patinhas? Esse comportamento, conhecido como 'fazer pãozinho', vem da infância. Quando filhotes, eles fazem isso na barriga da mãe para estimular o leite. Mas quando adultos, é um sinal supremo de afeto e segurança. Se o seu gato faz isso em você, parabéns! Ele te considera sua "mãe gigante". Mas cuidado: quanto mais amor, mais unhadas sem querer!`;
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
   // Inicializa o estado verificando o LocalStorage
   const [apiKeys, setApiKeys] = useState<ApiKeys>(() => {
     try {
       const saved = localStorage.getItem('ai_broll_keys');
-      return saved ? JSON.parse(saved) : { gemini: '', pexels: '' };
+      return saved ? JSON.parse(saved) : { pexels: '' };
     } catch (e) {
-      return { gemini: '', pexels: '' };
+      return { pexels: '' };
     }
   });
 
@@ -38,8 +39,8 @@ const App: React.FC = () => {
   const handleGenerate = async () => {
     setError(null);
     
-    if (!apiKeys.gemini || !apiKeys.pexels) {
-      setError("Por favor, insira ambas as chaves API na barra lateral antes de continuar.");
+    if (!apiKeys.pexels) {
+      setError("Por favor, insira a chave API do Pexels na barra lateral antes de continuar.");
       return;
     }
 
@@ -54,7 +55,7 @@ const App: React.FC = () => {
     try {
       // Step 1: Gemini Analysis
       setLoadingStep('Quebrando roteiro frase a frase com IA...');
-      const rawSegments = await analyzeScript(apiKeys.gemini, script);
+      const rawSegments = await analyzeScript(script);
       
       if (rawSegments.length === 0) {
         throw new Error("A IA não retornou nenhum segmento válido.");
@@ -163,7 +164,7 @@ const App: React.FC = () => {
 
     try {
       // 1. Gerar novo termo com Gemini
-      const newTerm = await generateAlternativeTerm(apiKeys.gemini, segment.text, segment.searchTerm);
+      const newTerm = await generateAlternativeTerm(segment.text, segment.searchTerm);
 
       // 2. Buscar no Pexels com o novo termo
       const result = await searchPexelsVideo(apiKeys.pexels, newTerm);
@@ -408,6 +409,14 @@ const App: React.FC = () => {
 
       </main>
     </div>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <AuthGate>
+      <AppContent />
+    </AuthGate>
   );
 };
 

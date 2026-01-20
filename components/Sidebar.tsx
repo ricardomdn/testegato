@@ -60,23 +60,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ apiKeys, setApiKeys }) => {
         </h2>
 
         <div className="space-y-6">
-          {/* Gemini Key */}
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
-              Google Gemini API Key
-            </label>
-            <input
-              type="password"
-              value={apiKeys.gemini}
-              onChange={(e) => handleChange('gemini', e.target.value)}
-              placeholder="Cole sua Gemini key aqui"
-              className="w-full bg-slate-800 border border-slate-600 rounded-md px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
-            />
-            <p className="text-xs text-slate-500 mt-1">
-              Necessário para entender o roteiro. <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-orange-500 hover:underline">Obter chave</a>
-            </p>
-          </div>
-
           {/* Pexels Key */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">
@@ -122,7 +105,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ apiKeys, setApiKeys }) => {
 
         <div className="mt-12 pt-6 border-t border-slate-700 text-slate-500 text-xs text-center">
           <p>Gatos AI Studio</p>
-          <p className="mt-2 font-mono opacity-70">Versão 1.2.5 (Cat Edition)</p>
+          <p className="mt-2 font-mono opacity-70">Versão 1.2.6 (Cat Edition)</p>
         </div>
       </div>
 
