@@ -19,20 +19,26 @@ export const analyzeScript = async (apiKey: string, script: string): Promise<Seg
     SCRIPT:
     "${cleanScript}"
 
-    **OBJECTIVE: HYPER-DYNAMIC SOCIAL MEDIA VIDEO (TIKTOK/REELS)**
-    
-    **CRITICAL SEGMENTATION RULES:**
-    1. **SPLIT EVERYTHING:** Do NOT allow long sentences. If a sentence has a comma, "and", "but", or natural pauses, **SPLIT IT** into separate segments.
-       - Bad: "Cats love milk, but it is bad for them." (1 segment - TOO LONG)
-       - Good: "Cats love milk," (Segment 1)
-       - Good: "but it is bad for them." (Segment 2)
-    2. **FULL COVERAGE:** You must cover 100% of the text. Do not summarize.
-    3. **PACE:** Aim for segments that take 2-3 seconds to read.
-    
-    **SEARCH TERM RULES:**
-    1. Provide 3 English search terms per segment.
-    2. **ALWAYS ADD "CAT"**: Even if the text is "It falls down", search for "Cat knocking something over".
-    3. **GENERIC BACKUP**: Always include one broader term like "Cute cat face", "Cat movement", or "Cat eyes" in the list to ensure results.
+    **OBJECTIVE: HYBRID PACING STRATEGY (HOOK vs STORY)**
+
+    You must segment this script applying two different editing rules based on the position in the video.
+
+    **PHASE 1: THE VIRAL HOOK (First ~20% of the script / Intro)**
+    - **GOAL:** Grab attention immediately. Hyper-fast cuts.
+    - **RULE:** **SPLIT EVERYTHING.** If a sentence has a comma, "and", "but", or a natural pause, SPLIT IT into a new segment.
+    - **Limit:** Apply this aggressive splitting for the first 4-5 sentences (resulting in ~15-20 fast clips).
+
+    **PHASE 2: THE STORY BODY (The rest of the script)**
+    - **GOAL:** Comfortable viewing experience.
+    - **RULE:** **SENTENCE BY SENTENCE.**
+    - Keep sentences whole unless they are extremely long (>25 words).
+    - Do not split at every comma anymore. Let the viewer breathe.
+
+    **GENERAL RULES:**
+    1. **FULL COVERAGE:** You must cover 100% of the text. Do not skip or summarize.
+    2. **SEARCH TERMS:** Provide 3 distinct English search terms per segment.
+       - **ALWAYS** include "Cat" in the query (e.g., "Cat jumping" instead of "Jumping").
+       - Include at least one generic backup like "Cute cat face" or "Cat movement".
 
     Return the result as a JSON array.
   `;
@@ -42,7 +48,7 @@ export const analyzeScript = async (apiKey: string, script: string): Promise<Seg
       model: "gemini-3-flash-preview",
       contents: prompt,
       config: {
-        systemInstruction: "You are a Viral Video Editor. Your editing style is fast, punchy, and dynamic. You never leave a clip on screen for too long.",
+        systemInstruction: "You are a Professional Video Editor. You know that the first few seconds need fast cuts to stop the scroll, but the rest of the video needs a steady pace to tell the story.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.ARRAY,
@@ -51,7 +57,7 @@ export const analyzeScript = async (apiKey: string, script: string): Promise<Seg
             properties: {
               text: {
                 type: Type.STRING,
-                description: "The short sentence or clause for this segment",
+                description: "The sentence or clause for this segment",
               },
               search_terms: {
                 type: Type.ARRAY,
