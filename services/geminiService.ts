@@ -19,32 +19,33 @@ export const analyzeScript = async (apiKey: string, script: string): Promise<Seg
     **INPUT SCRIPT:**
     "${cleanScript}"
 
-    **CRITICAL RULE: DO NOT SUMMARIZE. DO NOT SKIP WORDS.**
-    You must output the script EXACTLY as written, broken into segments. If the script has 500 words, your segments must contain all 500 words.
+    **RULE 1: VERBATIM TRANSCRIPTION (NO SUMMARIZING)**
+    - You must output the script **word-for-word**. 
+    - Do NOT delete a single word.
+    - Do NOT rewrite.
+    - If input is 1000 words, output must be 1000 words split into segments.
 
-    **PACING STRATEGY (The "10 Clip Hook"):**
+    **RULE 2: PACING (HOOK vs BODY)**
     
-    1. **THE HOOK (First 3 sentences ONLY):**
-       - Split these sentences at every comma, pause, or conjunction.
-       - Aim for very short segments (3-6 words).
-       - This creates a fast-paced intro (approx. 10 clips).
+    A) **THE HOOK (First 3 sentences ONLY):**
+       - Split frequently (every 3-6 words).
+       - Create a fast pace.
 
-    2. **THE BODY (Everything else):**
+    B) **THE BODY (The rest of the text):**
        - **SAFE MODE.**
-       - Segment **SENTENCE BY SENTENCE**.
-       - Do NOT split inside a sentence unless it is extremely long (>25 words).
-       - Keep the flow slow and steady.
+       - Split **SENTENCE BY SENTENCE**.
+       - Keep full sentences together unless they are massive (>25 words).
+       - Do NOT chop sentences in the middle.
 
-    **SEARCH TERM RULES (Prevent "No Video Found"):**
-    - Pexels search is stupid. Do not use complex concepts.
-    - **FORMAT:** [Adjective] [Noun] OR [Noun] [Verb]
-    - **ALWAYS** include "Cat" or "Kitten".
+    **RULE 3: "DUMB" SEARCH TERMS (CRITICAL)**
+    - For the BODY sections, use EXTREMELY SIMPLE search terms.
+    - **Structure:** "Cat" + [Single Verb/Adjective].
     - **Examples:**
-      - BAD: "Cat wondering about the universe" (Too complex)
-      - GOOD: "Cat looking up"
-      - BAD: "Feline agility demonstration"
-      - GOOD: "Cat jumping"
-    - Provide 3 variations per segment.
+      - Text: "Cats have a special organ to smell..." -> Search: "Cat smelling" (NOT "Cat organ")
+      - Text: "They sleep 16 hours a day..." -> Search: "Cat sleeping" (NOT "Cat sleeping 16 hours")
+      - Text: "Ancient Egyptians worshipped them..." -> Search: "Cat statue" or "Cat" (NOT "Egyptian cat worship")
+    - **ALWAYS start with "Cat" or "Kitten".**
+    - Provide 3 options per segment.
 
     Return the result as a JSON array.
   `;
@@ -54,7 +55,7 @@ export const analyzeScript = async (apiKey: string, script: string): Promise<Seg
       model: "gemini-3-flash-preview",
       contents: prompt,
       config: {
-        systemInstruction: "You are a mechanical transcriber. Your job is to cut the text, not rewrite it. You never exclude information.",
+        systemInstruction: "You are a mechanical transcriber. You do not think, you only cut text and provide simple keywords.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.ARRAY,
@@ -68,7 +69,7 @@ export const analyzeScript = async (apiKey: string, script: string): Promise<Seg
               search_terms: {
                 type: Type.ARRAY,
                 items: { type: Type.STRING },
-                description: "3 simple, 2-word search terms (e.g., 'Cat sleeping').",
+                description: "3 very simple search terms (e.g., 'Cat sleeping').",
               },
             },
             required: ["text", "search_terms"],

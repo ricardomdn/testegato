@@ -8,7 +8,7 @@ import { AuthGate } from './components/AuthGate';
 import JSZip from 'jszip';
 import saveAs from 'file-saver';
 
-// Aumentei o delay base para evitar erro 429 (Too Many Requests) no Pexels
+// Helper delay function
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const PLACEHOLDER_TEXT = `Ex: Você sabe por que seu gato te "amassa" com as patinhas? Esse comportamento, conhecido como 'fazer pãozinho', vem da infância. Quando filhotes, eles fazem isso na barriga da mãe para estimular o leite. Mas quando adultos, é um sinal supremo de afeto e segurança. Se o seu gato faz isso em você, parabéns! Ele te considera sua "mãe gigante". Mas cuidado: quanto mais amor, mais unhadas sem querer!`;
@@ -55,7 +55,7 @@ const AppContent: React.FC = () => {
 
     try {
       // Step 1: Gemini Analysis
-      setLoadingStep('Analisando roteiro (Sem resumir)...');
+      setLoadingStep('Analisando roteiro completo (Transcrição)...');
       const rawSegments = await analyzeScript(apiKeys.gemini, script);
       
       if (rawSegments.length === 0) {
@@ -63,17 +63,20 @@ const AppContent: React.FC = () => {
       }
 
       // Step 2: Pexels Video Search
-      setLoadingStep(`Buscando clipes para ${rawSegments.length} cenas...`);
+      setLoadingStep(`Buscando clipes para ${rawSegments.length} cenas (Modo Seguro)...`);
       
       const segmentPromises = rawSegments.map(async (seg, index) => {
         let videoData: PexelsVideo | undefined;
         let usedTerm = seg.search_terms[0];
 
+        // --- STAGGER DELAY (Crítico para evitar "Video Not Found" em massa) ---
+        // Aumentado para 800ms por item. Se tiver 50 itens, o ultimo começa 40s depois.
+        // Isso garante que o Pexels não bloqueie a conexão.
+        await delay(index * 800); 
+
         // --- TENTATIVA 1: Termos Específicos da IA ---
         for (const term of seg.search_terms) {
           try {
-            // Delay dinâmico baseado no index para evitar bater no limite da API todos de uma vez
-            await delay(300 + (index * 50)); 
             const videos = await searchPexelsVideo(apiKeys.pexels, term, 1);
             if (videos && videos.length > 0) {
               const randomIndex = Math.floor(Math.random() * Math.min(videos.length, 5));
@@ -88,10 +91,10 @@ const AppContent: React.FC = () => {
         if (!videoData) {
             try {
                 const randomGenericTerm = FALLBACK_CAT_TERMS[Math.floor(Math.random() * FALLBACK_CAT_TERMS.length)];
-                // Reduzi o range de páginas para 1-10 para garantir resultados
-                const randomPage = Math.floor(Math.random() * 10) + 1;
+                // Reduzi o range de páginas para 1-5 para garantir resultados (páginas muito altas as vezes falham)
+                const randomPage = Math.floor(Math.random() * 5) + 1;
                 
-                await delay(500); // Delay extra no fallback
+                await delay(200); // Pequeno delay extra antes do fallback
                 const videos = await searchPexelsVideo(apiKeys.pexels, randomGenericTerm, randomPage);
                 
                 if (videos && videos.length > 0) {
@@ -103,15 +106,15 @@ const AppContent: React.FC = () => {
         }
 
         // --- TENTATIVA 3: REDE DE SEGURANÇA NUCLEAR ---
-        // Se tudo falhar, busca "Kitten" na página 1.
+        // Se tudo falhar, busca "Cat" na página 1. Impossível falhar a menos que a API esteja fora.
         if (!videoData) {
             try {
-                await delay(600);
-                const videos = await searchPexelsVideo(apiKeys.pexels, "kitten", 1);
+                await delay(200);
+                const videos = await searchPexelsVideo(apiKeys.pexels, "cat", 1);
                 if (videos && videos.length > 0) {
                     const randomIndex = Math.floor(Math.random() * Math.min(videos.length, 5));
                     videoData = videos[randomIndex];
-                    usedTerm = "Kitten (Final Safe)";
+                    usedTerm = "Cat (Final Safe)";
                 }
             } catch (e) { console.warn("Fallback final falhou"); }
         }
