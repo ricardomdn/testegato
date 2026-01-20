@@ -24,7 +24,12 @@ const FALLBACK_CAT_TERMS = [
   "cat walking",
   "cat licking paw",
   "fluffy cat",
-  "cat yawning"
+  "cat yawning",
+  "cat looking at camera",
+  "cat tail wagging",
+  "cat sitting",
+  "cat eating",
+  "cat jumping"
 ];
 
 const AppContent: React.FC = () => {
@@ -67,7 +72,7 @@ const AppContent: React.FC = () => {
 
     try {
       // Step 1: Gemini Analysis
-      setLoadingStep('Quebrando roteiro frase a frase com IA...');
+      setLoadingStep('Quebrando roteiro em cenas dinâmicas (TikTok Style)...');
       const rawSegments = await analyzeScript(apiKeys.gemini, script);
       
       if (rawSegments.length === 0) {
@@ -75,53 +80,60 @@ const AppContent: React.FC = () => {
       }
 
       // Step 2: Pexels Video Search
-      setLoadingStep(`Buscando clipes para ${rawSegments.length} frases...`);
+      setLoadingStep(`Buscando clipes únicos para ${rawSegments.length} cortes...`);
       
       const segmentPromises = rawSegments.map(async (seg, index) => {
         let videoData = null;
         let usedTerm = seg.search_terms[0]; // Default to first term
 
-        // Tenta encontrar vídeo iterando pelos termos (Específico -> Geral)
+        // 1. Tenta encontrar vídeo iterando pelos termos da IA (Específico -> Geral)
         for (const term of seg.search_terms) {
           try {
-            // Delay para evitar Rate Limiting do Pexels
-            await delay(350); 
-            
+            await delay(350); // Delay anti-rate-limit
             const result = await searchPexelsVideo(apiKeys.pexels, term);
             if (result && result.video_files && result.video_files.length > 0) {
               videoData = result;
               usedTerm = term;
-              break; // Encontrou! Para o loop.
+              break; // Encontrou!
             }
           } catch (e) {
             console.warn(`Falha ao buscar termo "${term}":`, e);
-            // Se for erro de autenticação, propaga o erro. Se for 404/vazio, continua.
-            if (e instanceof Error && e.message.includes('inválida')) {
-                throw e; 
-            }
+            if (e instanceof Error && e.message.includes('inválida')) throw e;
             continue; 
           }
         }
 
-        // --- FALLBACK LOGIC 1: Busca Genérica ---
-        // Se após tentar os 3 termos da IA ainda não tiver vídeo, busca um gato aleatório
+        // 2. BUSCA EXAUSTIVA (Fallback Loop)
+        // Se os termos específicos falharem, entra num loop tentando termos genéricos aleatórios
+        // até encontrar algo, garantindo que NÃO falte vídeo e NÃO reutilize se possível.
         if (!videoData || !videoData.video_files || videoData.video_files.length === 0) {
-            try {
-                await delay(350); // Segurança de rate limit
-                const randomFallbackTerm = FALLBACK_CAT_TERMS[Math.floor(Math.random() * FALLBACK_CAT_TERMS.length)];
-                
-                console.log(`Fallback ativado para segmento ${index}: buscando "${randomFallbackTerm}"`);
-                
-                const fallbackResult = await searchPexelsVideo(apiKeys.pexels, randomFallbackTerm);
-                if (fallbackResult && fallbackResult.video_files && fallbackResult.video_files.length > 0) {
-                    videoData = fallbackResult;
-                    usedTerm = `${randomFallbackTerm} (Automático)`;
+            console.log(`Modo de resgate ativado para cena ${index}: ${seg.text}`);
+            
+            // Tentamos até 5 vezes com termos aleatórios diferentes
+            let attempts = 0;
+            const maxAttempts = 5;
+            
+            while ((!videoData || !videoData.video_files || videoData.video_files.length === 0) && attempts < maxAttempts) {
+                try {
+                    await delay(400); // Delay ligeiramente maior para segurança
+                    const randomFallbackTerm = FALLBACK_CAT_TERMS[Math.floor(Math.random() * FALLBACK_CAT_TERMS.length)];
+                    
+                    console.log(`Tentativa ${attempts + 1}/${maxAttempts} para cena ${index}: "${randomFallbackTerm}"`);
+                    
+                    const fallbackResult = await searchPexelsVideo(apiKeys.pexels, randomFallbackTerm);
+                    
+                    if (fallbackResult && fallbackResult.video_files && fallbackResult.video_files.length > 0) {
+                        videoData = fallbackResult;
+                        usedTerm = `${randomFallbackTerm} (Auto-Resgate)`;
+                    }
+                } catch (fallbackError) {
+                    console.warn("Erro no loop de fallback:", fallbackError);
                 }
-            } catch (fallbackError) {
-                console.warn("Fallback genérico também falhou:", fallbackError);
+                attempts++;
             }
         }
         
+        // Processa o resultado final (seja da busca original ou do resgate)
         let bestVideoUrl = null;
         if (videoData && videoData.video_files) {
             const hdFile = videoData.video_files.find(f => f.quality === 'hd' && f.width >= 1280);
@@ -133,8 +145,8 @@ const AppContent: React.FC = () => {
         return {
           id: `seg-${index}-${Date.now()}`,
           text: seg.text,
-          searchTerm: usedTerm, // Mostra o termo que realmente funcionou
-          allSearchTerms: seg.search_terms, // Salva todas as opções para uso posterior
+          searchTerm: usedTerm, 
+          allSearchTerms: seg.search_terms,
           videoUrl: bestVideoUrl,
           videoDuration: videoData?.duration,
           videoUser: videoData?.user?.name,
@@ -143,28 +155,9 @@ const AppContent: React.FC = () => {
       });
 
       const results = await Promise.all(segmentPromises);
-
-      // --- FALLBACK LOGIC 2: Reciclagem de Vídeos (Último Recurso) ---
-      // Se ainda houver segmentos sem vídeo (URL null), reutilizamos vídeos que foram encontrados com sucesso em outros segmentos.
-      const successfulVideos = results.filter(r => r.videoUrl);
-
-      if (successfulVideos.length > 0) {
-        results.forEach(segment => {
-          if (!segment.videoUrl) {
-            // Pega um vídeo aleatório da lista de sucessos
-            const recycled = successfulVideos[Math.floor(Math.random() * successfulVideos.length)];
-            
-            console.log(`Reciclando vídeo para o segmento: "${segment.text}"`);
-            
-            segment.videoUrl = recycled.videoUrl;
-            segment.videoDuration = recycled.videoDuration;
-            segment.videoUser = recycled.videoUser;
-            segment.videoUserUrl = recycled.videoUserUrl;
-            // Atualiza o termo visualmente para indicar que foi reutilizado, mas mantendo a ideia original
-            segment.searchTerm = `${segment.searchTerm} (Reutilizado)`;
-          }
-        });
-      }
+      
+      // Removemos a lógica de reciclagem (reutilizar clipes) conforme solicitado.
+      // Agora confiamos no loop de "Auto-Resgate" acima.
 
       setSegments(results);
 

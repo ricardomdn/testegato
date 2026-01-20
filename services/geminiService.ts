@@ -19,22 +19,25 @@ export const analyzeScript = async (apiKey: string, script: string): Promise<Seg
     SCRIPT:
     "${cleanScript}"
 
-    **CRITICAL TASK - DYNAMIC EDITING (SENTENCE BY SENTENCE):**
-    You must segment this script strictly **SENTENCE BY SENTENCE**.
+    **CRITICAL TASK - TIKTOK/REELS PACING (FAST CUTS):**
+    You must segment this script into **SHORT VISUAL BEATS**.
     
     **SEGMENTATION RULES:**
-    1. **1 SENTENCE = 1 VIDEO CLIP.** Do NOT group sentences together.
-    2. If a sentence is extremely short (under 3 words), you may combine it with the next one.
-    3. If a sentence is very long/complex, split it into two visual segments based on clauses.
-    4. The goal is a **FAST PACED** video where the visual changes every time a new sentence starts.
+    1. **FAST PACING:** Do NOT keep long sentences as one segment. Break them down!
+       - Bad: "When cats rub against your leg, they are actually marking you with their scent glands." (Too long, 1 clip)
+       - Good: "When cats rub against your leg," (Clip 1)
+       - Good: "they are actually marking you" (Clip 2)
+       - Good: "with their scent glands." (Clip 3)
+    2. **1 Clause = 1 Video Clip.**
+    3. Maximum duration per segment should be roughly 2-4 seconds of spoken text.
 
     **SEARCH TERM RULES (CONTEXT AWARE):**
     1.  For each segment, provide 3 DISTINCT search terms for Pexels/Stock Footage.
-    2.  **MATCH THE SUBJECT:** While this is a cat channel, the visual must match the spoken words.
-        - If the segment says "When you are sick", search for **"Sick person in bed"** or **"Woman sneezing"**.
-        - If the segment says "He knocks over the glass", search for **"Glass of water falling"** or **"Cat knocking glass"**.
-    3.  **DEFAULT TO CATS:** If the segment is about the cat's feelings, instincts, or general behavior, THEN use terms like "Cat", "Kitten", "Cat eyes", etc.
-    4.  **English Only:** Search terms must be in English.
+    2.  **MATCH THE VISUAL BEAT:**
+        - If text is "Cats sleep a lot", search: "Sleeping cat", "Lazy cat on sofa".
+        - If text is "They are hunters", search: "Cat pouncing", "Cat eyes dilated", "Cat hunting toy".
+    3.  **DEFAULT TO CATS:** Unless the script explicitly mentions a human/object alone (e.g. "Open a can"), always include "Cat" or "Kitten" in the search.
+    4.  **English Only.**
 
     Return the result as a JSON array.
   `;
@@ -44,7 +47,7 @@ export const analyzeScript = async (apiKey: string, script: string): Promise<Seg
       model: "gemini-3-flash-preview",
       contents: prompt,
       config: {
-        systemInstruction: "You are a Professional Video Editor. You choose the best B-Roll footage to illustrate the narration. You are NOT afraid to show humans, objects, or scenery if the script mentions them, to create a rich visual storytelling experience.",
+        systemInstruction: "You are a Viral Video Editor specialized in high-retention content. You chop scripts into bite-sized visual pieces to keep the audience engaged.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.ARRAY,
@@ -53,12 +56,12 @@ export const analyzeScript = async (apiKey: string, script: string): Promise<Seg
             properties: {
               text: {
                 type: Type.STRING,
-                description: "The single sentence or clause for this segment",
+                description: "The short phrase or clause for this segment",
               },
               search_terms: {
                 type: Type.ARRAY,
                 items: { type: Type.STRING },
-                description: "List of 3 search terms: [Literal Representation, Contextual/Mood, Broad]",
+                description: "List of 3 search terms: [Literal, Mood/Abstract, Broad]",
               },
             },
             required: ["text", "search_terms"],
@@ -93,10 +96,10 @@ export const generateAlternativeTerm = async (apiKey: string, originalText: stri
     Generate a **completely different** English search term that captures the essence of this sentence.
     
     **RULES:**
-    1. If the sentence mentions a specific object or human action (e.g., "Sick person", "Opening door"), search for THAT object/human.
-    2. If the sentence is about the cat, search for the cat.
+    1. Focus on the VISUAL ACTION.
+    2. If it's abstract, think of a metaphor involving a cat.
     3. English ONLY.
-    4. Max 4-5 words.
+    4. Max 3-5 words.
     
     Return ONLY the raw search term string.
   `;
