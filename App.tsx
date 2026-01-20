@@ -8,18 +8,16 @@ import { AuthGate } from './components/AuthGate';
 import JSZip from 'jszip';
 import saveAs from 'file-saver';
 
-// Helper delay function to avoid hitting API rate limits
+// Aumentei o delay base para evitar erro 429 (Too Many Requests) no Pexels
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const PLACEHOLDER_TEXT = `Ex: Você sabe por que seu gato te "amassa" com as patinhas? Esse comportamento, conhecido como 'fazer pãozinho', vem da infância. Quando filhotes, eles fazem isso na barriga da mãe para estimular o leite. Mas quando adultos, é um sinal supremo de afeto e segurança. Se o seu gato faz isso em você, parabéns! Ele te considera sua "mãe gigante". Mas cuidado: quanto mais amor, mais unhadas sem querer!`;
 
-// Lista expandida de termos genéricos para garantir variedade no fallback
+// Termos ultra-genéricos e seguros
 const FALLBACK_CAT_TERMS = [
-  "cute cat close up", "kitten playing", "cat sleeping", "funny cat face",
-  "cat eyes macro", "cat walking outdoors", "cat licking paw", "fluffy cat",
-  "cat yawning", "cat looking at camera", "cat tail wagging", "cat sitting on window",
-  "cat eating food", "cat jumping", "cat running", "black cat", "orange tabby cat",
-  "white cat", "siamese cat", "cat scratching post", "cat playing with toy"
+  "cat", "cute cat", "kitten", "cat face", "cat eyes", 
+  "cat sleeping", "cat playing", "funny cat", "white cat", 
+  "black cat", "orange cat", "tabby cat"
 ];
 
 const AppContent: React.FC = () => {
@@ -57,7 +55,7 @@ const AppContent: React.FC = () => {
 
     try {
       // Step 1: Gemini Analysis
-      setLoadingStep('Criando roteiro dinâmico...');
+      setLoadingStep('Analisando roteiro (Sem resumir)...');
       const rawSegments = await analyzeScript(apiKeys.gemini, script);
       
       if (rawSegments.length === 0) {
@@ -71,14 +69,14 @@ const AppContent: React.FC = () => {
         let videoData: PexelsVideo | undefined;
         let usedTerm = seg.search_terms[0];
 
-        // --- TENTATIVA 1: Termos Específicos da IA (Página 1) ---
+        // --- TENTATIVA 1: Termos Específicos da IA ---
         for (const term of seg.search_terms) {
           try {
-            await delay(200); 
+            // Delay dinâmico baseado no index para evitar bater no limite da API todos de uma vez
+            await delay(300 + (index * 50)); 
             const videos = await searchPexelsVideo(apiKeys.pexels, term, 1);
             if (videos && videos.length > 0) {
-              // Pega um aleatório dos top 6
-              const randomIndex = Math.floor(Math.random() * Math.min(videos.length, 6));
+              const randomIndex = Math.floor(Math.random() * Math.min(videos.length, 5));
               videoData = videos[randomIndex];
               usedTerm = term;
               break; 
@@ -86,42 +84,39 @@ const AppContent: React.FC = () => {
           } catch (e) { /* ignore */ }
         }
 
-        // --- TENTATIVA 2: FALLBACK COM VÍDEO GENÉRICO ALEATÓRIO ---
-        // Se nada específico foi encontrado
+        // --- TENTATIVA 2: FALLBACK GENÉRICO SEGURO ---
         if (!videoData) {
             try {
                 const randomGenericTerm = FALLBACK_CAT_TERMS[Math.floor(Math.random() * FALLBACK_CAT_TERMS.length)];
+                // Reduzi o range de páginas para 1-10 para garantir resultados
+                const randomPage = Math.floor(Math.random() * 10) + 1;
                 
-                // Reduzi para página 1-20 para aumentar chance de encontrar algo (páginas 50+ podem estar vazias para certos termos)
-                const randomPage = Math.floor(Math.random() * 20) + 1;
-                
-                await delay(250);
+                await delay(500); // Delay extra no fallback
                 const videos = await searchPexelsVideo(apiKeys.pexels, randomGenericTerm, randomPage);
                 
                 if (videos && videos.length > 0) {
                     const randomIndex = Math.floor(Math.random() * videos.length);
                     videoData = videos[randomIndex];
-                    usedTerm = `${randomGenericTerm} (Genérico Random)`;
+                    usedTerm = `${randomGenericTerm} (Backup)`;
                 }
             } catch (e) { console.warn("Fallback aleatório falhou"); }
         }
 
-        // --- TENTATIVA 3: REDE DE SEGURANÇA FINAL (Último Recurso) ---
-        // Se o aleatório também falhar, busca "cat" na página 1. Impossível falhar.
+        // --- TENTATIVA 3: REDE DE SEGURANÇA NUCLEAR ---
+        // Se tudo falhar, busca "Kitten" na página 1.
         if (!videoData) {
             try {
-                await delay(250);
-                const videos = await searchPexelsVideo(apiKeys.pexels, "cat", 1);
+                await delay(600);
+                const videos = await searchPexelsVideo(apiKeys.pexels, "kitten", 1);
                 if (videos && videos.length > 0) {
-                    // Pega um vídeo do meio da lista para não ser sempre o primeiro vídeo do Pexels
-                    const randomIndex = Math.floor(Math.random() * Math.min(videos.length, 10));
+                    const randomIndex = Math.floor(Math.random() * Math.min(videos.length, 5));
                     videoData = videos[randomIndex];
-                    usedTerm = "Cat (Fallback Final)";
+                    usedTerm = "Kitten (Final Safe)";
                 }
             } catch (e) { console.warn("Fallback final falhou"); }
         }
 
-        // Processa URL do vídeo encontrado
+        // Processa URL do vídeo
         let bestVideoUrl = null;
         if (videoData && videoData.video_files) {
             const hdFile = videoData.video_files.find(f => f.quality === 'hd' && f.width >= 1280);
@@ -157,14 +152,13 @@ const AppContent: React.FC = () => {
     if (segmentIndex === -1) return;
 
     try {
-      // Busca manual sempre na página 1
       const videos = await searchPexelsVideo(apiKeys.pexels, newTerm, 1);
       
       let bestVideoUrl = null;
       let videoData: PexelsVideo | undefined;
 
       if (videos && videos.length > 0) {
-        videoData = videos[0]; // Na busca manual, o usuário espera o mais relevante (primeiro)
+        videoData = videos[0]; 
         const hdFile = videoData.video_files.find(f => f.quality === 'hd' && f.width >= 1280);
         const sdFile = videoData.video_files.find(f => f.quality === 'sd');
         bestVideoUrl = hdFile ? hdFile.link : (sdFile ? sdFile.link : videoData.video_files[0]?.link);
@@ -245,7 +239,6 @@ const AppContent: React.FC = () => {
           if (!response.ok) throw new Error(`Falha no download`);
           const blob = await response.blob();
           setDownloadProgress(prev => ({ ...prev, current: prev.current + 1 }));
-          // Formato: Cena_Take (Ex: 1_1.mp4)
           const fileName = `${index + 1}_1.mp4`;
           return { fileName, blob };
         } catch (e) {

@@ -8,39 +8,43 @@ export interface SegmentResponse {
 export const analyzeScript = async (apiKey: string, script: string): Promise<SegmentResponse[]> => {
   if (!apiKey) throw new Error("API Key do Gemini é obrigatória");
 
-  // Remove formatação excessiva
+  // Remove formatação excessiva mas mantém pontuação vital
   const cleanScript = script.replace(/\n/g, " ").replace(/\s+/g, " ").trim();
 
   const ai = new GoogleGenAI({ apiKey });
 
   const prompt = `
-    Analyze the following video script about CATS/FELINES.
+    You are a Video Script Segmenter.
     
-    SCRIPT:
+    **INPUT SCRIPT:**
     "${cleanScript}"
 
-    **OBJECTIVE: DYNAMIC VIDEO EDITING (HOOK vs STORY)**
+    **CRITICAL RULE: DO NOT SUMMARIZE. DO NOT SKIP WORDS.**
+    You must output the script EXACTLY as written, broken into segments. If the script has 500 words, your segments must contain all 500 words.
 
-    **PHASE 1: THE HOOK (First 20% of script)**
-    - **Pace:** Fast and energetic, BUT meaningful.
-    - **Rule:** Keep segments between **3 to 8 words**.
-    - **Do NOT** split mid-clause awkwardly.
-    - **Bad:** "Cats are," (Too short) | "awesome creatures." (Disconnected)
-    - **Good:** "Cats are awesome creatures," (Perfect)
+    **PACING STRATEGY (The "10 Clip Hook"):**
+    
+    1. **THE HOOK (First 3 sentences ONLY):**
+       - Split these sentences at every comma, pause, or conjunction.
+       - Aim for very short segments (3-6 words).
+       - This creates a fast-paced intro (approx. 10 clips).
 
-    **PHASE 2: THE NARRATIVE (Remaining 80%)**
-    - **Pace:** Natural storytelling flow.
-    - **Rule:** **SENTENCE BY SENTENCE**.
-    - Only split if the sentence is very long (>20 words).
-    - Focus on completing the thought before cutting.
+    2. **THE BODY (Everything else):**
+       - **SAFE MODE.**
+       - Segment **SENTENCE BY SENTENCE**.
+       - Do NOT split inside a sentence unless it is extremely long (>25 words).
+       - Keep the flow slow and steady.
 
-    **CRITICAL: SEARCH TERMS FOR STOCK FOOTAGE**
-    - Stock sites (Pexels) fail with complex sentences.
-    - **RULE:** Generate **SIMPLE, 2-4 WORD** search terms.
-    - **Bad:** "Cat looking deeply into the camera with love" (Too complex -> No results)
-    - **Good:** "Cat macro eyes" or "Cat looking up"
-    - **ALWAYS** include "Cat" or "Kitten" in the query.
-    - Provide 3 distinct terms per segment.
+    **SEARCH TERM RULES (Prevent "No Video Found"):**
+    - Pexels search is stupid. Do not use complex concepts.
+    - **FORMAT:** [Adjective] [Noun] OR [Noun] [Verb]
+    - **ALWAYS** include "Cat" or "Kitten".
+    - **Examples:**
+      - BAD: "Cat wondering about the universe" (Too complex)
+      - GOOD: "Cat looking up"
+      - BAD: "Feline agility demonstration"
+      - GOOD: "Cat jumping"
+    - Provide 3 variations per segment.
 
     Return the result as a JSON array.
   `;
@@ -50,7 +54,7 @@ export const analyzeScript = async (apiKey: string, script: string): Promise<Seg
       model: "gemini-3-flash-preview",
       contents: prompt,
       config: {
-        systemInstruction: "You are a Video Editor Assistant. You prioritize finding good footage matches. You keep search terms simple and broad to ensure results.",
+        systemInstruction: "You are a mechanical transcriber. Your job is to cut the text, not rewrite it. You never exclude information.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.ARRAY,
@@ -59,12 +63,12 @@ export const analyzeScript = async (apiKey: string, script: string): Promise<Seg
             properties: {
               text: {
                 type: Type.STRING,
-                description: "The script segment text",
+                description: "The EXACT text from the script for this segment.",
               },
               search_terms: {
                 type: Type.ARRAY,
                 items: { type: Type.STRING },
-                description: "List of 3 simple search terms (2-4 words max)",
+                description: "3 simple, 2-word search terms (e.g., 'Cat sleeping').",
               },
             },
             required: ["text", "search_terms"],
@@ -90,16 +94,19 @@ export const generateAlternativeTerm = async (apiKey: string, originalText: stri
   const ai = new GoogleGenAI({ apiKey });
 
   const prompt = `
-    I need a NEW, SIMPLE stock footage search term.
+    Generate a foolproof stock footage search term.
     
     Context: "${originalText}"
-    Old Term: "${currentTerm}"
+    Previous Failed Term: "${currentTerm}"
     
-    **TASK:**
-    Give me a **BROAD, SIMPLE** search term (1-3 words) that guarantees results on Pexels.
-    Example: Instead of "Cat running fast in garden", use "Cat running".
+    **RULE:**
+    Return a generic, broad term that 100% exists on Pexels.
+    Use ONLY: "Cat" + [Action/Part].
+    Max 2-3 words.
     
-    Return ONLY the search term string.
+    Example: "Cat eyes", "Cat sleeping", "Orange cat".
+    
+    Return ONLY the string.
   `;
 
   try {
@@ -107,7 +114,7 @@ export const generateAlternativeTerm = async (apiKey: string, originalText: stri
       model: "gemini-3-flash-preview",
       contents: prompt,
       config: {
-        systemInstruction: "You are a creative visual assistant.",
+        systemInstruction: "You are a helpful assistant.",
       }
     });
 
